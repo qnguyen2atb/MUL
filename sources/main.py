@@ -6,6 +6,8 @@ from pyparsing import col
 from sklearn.model_selection import train_test_split
 #Import Random Forest Model
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import VotingClassifier
+
 from sklearn import metrics
 from sklearn.metrics import accuracy_score, make_scorer
 from sklearn.metrics import classification_report
@@ -18,6 +20,7 @@ from data_exploratory_test import *
 
 from originalModel import oModel
 from baselineModel import bModel
+from shardedModel import sModel
 
 import timeit
 
@@ -38,7 +41,6 @@ df = read_csv(d)
 df = df.sample(frac = 1)
 
 # read data
-df = read_csv(d)
 feature_names = ['Age','Tenure','PSYTE_Segment','Total_score','Trnx_count','num_products','mean_trnx_amt']
 
 
@@ -60,8 +62,7 @@ feature_names = ['Age','Tenure','PSYTE_Segment','Total_score','Trnx_count','num_
 #print(df.columns)
 
 
-
-#df = df.dropna()
+feature_names = ['Age','Tenure','PSYTE_Segment','Total_score','Trnx_count','num_products','mean_trnx_amt']
 X = df[['Age','Tenure','PSYTE_Segment','Total_score','Trnx_count','num_products','mean_trnx_amt','Churn_risk']]
 X = X.loc[X['Age'] > np.percentile(X['Age'], 0.05)]
 
@@ -152,3 +153,22 @@ with open('metrics.csv', 'a') as f:
     #f.write('\n')
     f.write('Baseline model2,' + metrics)
     f.write('\n')
+
+
+sM = sModel(df)
+metrics = sM.train_model()
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write(metrics)
+    f.write('\n')
+
+metrics = sM.get_aggregatedmodel()
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write(metrics)
+    f.write('\n')
+
+
+
