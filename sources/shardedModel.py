@@ -14,17 +14,19 @@ from sklearn.pipeline import Pipeline
 
 class sModel():
     
-    def __init__(self, df):
+    def __init__(self, df, nshard):
         feature_names = ['Age','Tenure','PSYTE_Segment','Total_score','Trnx_count','num_products','mean_trnx_amt']
         df = df.loc[df['Age'] > np.percentile(df['Age'], 0.05)]
-
+        self.nshard = nshard
+        '''
+        # Transform some features
         df['Age2'] = np.log10(df['Age'])
         df['PSYTE_Segment2'] = np.log10(df['PSYTE_Segment'])
         df['Trnx_count2'] = np.log10(df['Trnx_count'])
         df['Churn_risk'] = df.Churn_risk.astype("category").cat.codes
-
-        self.model_data = df[['Age','Tenure','PSYTE_Segment','Total_score','Trnx_count','num_products','mean_trnx_amt','Churn_risk']]
-        self.shards = np.array_split(self.model_data, 5)
+        '''
+        self.model_data = df[['Age','Tenure','PSYTE_Segment','Total_score','Trnx_count','num_products','mean_trnx_amt','Churn_risk']][(df.Total_score < 20) | (df.Total_score > 25)]
+        self.shards = np.array_split(self.model_data, self.nshard)
 
         #X['Tenure'][X['Tenure'] <= 0 ] = 0.001
         #X['Trnx_count'][X['Trnx_count'] == 0 ] = 0.001
@@ -36,9 +38,10 @@ class sModel():
  
     def optimize_model(self):
 
-
-        
-        original_params = {'bootstrap': True, 'ccp_alpha': 0.0, 'class_weight': None, 'criterion': 'gini', 'max_depth': None, 'max_features': 'auto', 'max_leaf_nodes': None, 'max_samples': None, 'min_impurity_decrease': 0.0, 'min_impurity_split': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 'n_estimators': 100, 'n_jobs': -1, 'oob_score': False, 'random_state': None, 'verbose': 0, 'warm_start': False}
+        original_params = {'bootstrap': True, 'ccp_alpha': 0.0, 'class_weight': None, 'criterion': 'gini', 'max_depth': None, \
+                        'max_features': 'auto', 'max_leaf_nodes': None, 'max_samples': None, 'min_impurity_decrease': 0.0, \
+                        'min_impurity_split': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, \
+                        'n_estimators': 100, 'n_jobs': -1, 'oob_score': False, 'random_state': None, 'verbose': 0, 'warm_start': False}
 
         clf=RandomForestClassifier(**original_params) #100
         
@@ -190,7 +193,7 @@ class sModel():
             # load the model from disk
             loaded_model = pickle.load(open('../models/'+filename, 'rb'))
             #result = loaded_model.score(X_test, y_test)
-            _metrics += str('shard_'+str(iter)+'_model, '+str(format(training_time, ".3f")) + ',' +
+            _metrics += str('shard_'+str(iter)+'_model_B4_'+str(self.nshard)+'s, '+str(format(training_time, ".3f")) + ',' +
                 str(format(testing_time, ".3f")) + ',' +
                 str(format(self._y_train.shape[0], ".0f")) +  ',' +
                 str(format(self._y_test.shape[0], ".0f")) + ',' +
@@ -207,21 +210,6 @@ class sModel():
         for iter in range(5):
             filename = 'shard_model_'+str(iter)+'.sav'
             models.append(('RF_shard'+str(iter), pickle.load(open('../models/'+filename, 'rb'))))
-            # save the model to disk
-            #pickle.dump(clf, open('../models/'+filename, 'wb'))
-            # load the model from disk
-            #loaded_model = pickle.load(open('../models/'+filename, 'rb'))
-            #result = loaded_model.score(X_test, y_test)
-
-
-            #models.append(('knn1', KNeighborsClassifier(n_neighbors=1)))
-            #models.append(('knn3', KNeighborsClassifier(n_neighbors=3)))
-            #models.append(('knn5', KNeighborsClassifier(n_neighbors=5)))
-            #models.append(('knn7', KNeighborsClassifier(n_neighbors=7)))
-            #models.append(('knn9', KNeighborsClassifier(n_neighbors=9)))
-            # define the voting ensemble
-        
-        
         self.ensemble = VotingClassifier(estimators=models, voting='soft')
         
         '''
@@ -264,7 +252,7 @@ class sModel():
         # load the model from disk
         #loaded_model = pickle.load(open('../models/'+filename, 'rb'))
         #result = loaded_model.score(X_test, y_test)
-        _metrics = str('aggregated_model, '+str(format(training_time, ".3f")) + ',' +
+        _metrics = str('aggregated_model_B4_'+str(self.nshard)+'s, '+str(format(training_time, ".3f")) + ',' +
             str(format(testing_time, ".3f")) + ',' +
             str(format(self._y_train.shape[0], ".0f")) +  ',' +
             str(format(self._y_test.shape[0], ".0f")) + ',' +

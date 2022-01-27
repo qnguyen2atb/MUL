@@ -70,6 +70,7 @@ X['Age2'] = np.log10(df['Age'])
 X['PSYTE_Segment2'] = np.log10(df['PSYTE_Segment'])
 X['Trnx_count2'] = np.log10(df['Trnx_count'])
 
+
 #X['Tenure'][X['Tenure'] <= 0 ] = 0.001
 #X['Trnx_count'][X['Trnx_count'] == 0 ] = 0.001
 
@@ -148,14 +149,119 @@ print(X.shape)
 bM = bModel(X, y)
 #bM.train_base_model()
 metrics = bM.train_model()
+#metrics = bM.opt_model()
+
 with open('metrics.csv', 'a') as f:
     #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
     #f.write('\n')
     f.write('Baseline model2,' + metrics)
     f.write('\n')
 
+X = df[['Age','Tenure','PSYTE_Segment','Total_score',\
+    'Trnx_count','num_products','mean_trnx_amt','Churn_risk']][(df.Total_score > 5)]
+X = X.loc[X['Age'] > np.percentile(X['Age'], 0.05)]
+X['Age2'] = np.log10(df['Age'])
+X['PSYTE_Segment2'] = np.log10(df['PSYTE_Segment'])
+X['Trnx_count2'] = np.log10(df['Trnx_count'])
+ordered_satisfaction = ['Low', 'Medium', 'High']
+X['Churn_risk'] = X.Churn_risk.astype("category").cat.codes
+y = np.ravel(X[['Churn_risk']])
+X = X.drop(columns=['Churn_risk'])
 
-sM = sModel(df)
+
+#X = X[X.PSYTE_Segment != 12]
+
+print(X.shape)
+bM = bModel(X, y)
+#bM.train_base_model()
+metrics = bM.train_model()
+#metrics = bM.opt_model()
+
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write('Baseline model3,' + metrics)
+    f.write('\n')
+
+
+X = df[['Age','Tenure','PSYTE_Segment','Total_score',\
+    'Trnx_count','num_products','mean_trnx_amt','Churn_risk']][(df.Total_score < 20) | (df.Total_score > 25)]
+
+X = X.loc[X['Age'] > np.percentile(X['Age'], 0.05)]
+X['Age2'] = np.log10(df['Age'])
+X['PSYTE_Segment2'] = np.log10(df['PSYTE_Segment'])
+X['Trnx_count2'] = np.log10(df['Trnx_count'])
+ordered_satisfaction = ['Low', 'Medium', 'High']
+X['Churn_risk'] = X.Churn_risk.astype("category").cat.codes
+y = np.ravel(X[['Churn_risk']])
+X = X.drop(columns=['Churn_risk'])
+
+
+#X = X[X.PSYTE_Segment != 12]
+
+print(X.shape)
+bM = bModel(X, y)
+#bM.train_base_model()
+metrics = bM.train_model()
+#metrics = bM.opt_model()
+
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write('Baseline model4,' + metrics)
+    f.write('\n')
+
+
+
+
+sM = sModel(df, 15)
+metrics = sM.train_model()
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write(metrics)
+    f.write('\n')
+
+metrics = sM.get_aggregatedmodel()
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write(metrics)
+    f.write('\n')
+
+
+sM = sModel(df, 20)
+metrics = sM.train_model()
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write(metrics)
+    f.write('\n')
+
+metrics = sM.get_aggregatedmodel()
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write(metrics)
+    f.write('\n')
+
+sM = sModel(df, 25)
+metrics = sM.train_model()
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write(metrics)
+    f.write('\n')
+
+metrics = sM.get_aggregatedmodel()
+with open('metrics.csv', 'a') as f:
+    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+    #f.write('\n')
+    f.write(metrics)
+    f.write('\n')
+
+
+sM = sModel(df, 30)
 metrics = sM.train_model()
 with open('metrics.csv', 'a') as f:
     #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
