@@ -159,7 +159,7 @@ with open('metrics.csv', 'a') as f:
 
 X = df[['Age','Tenure','PSYTE_Segment','Total_score',\
     'Trnx_count','num_products','mean_trnx_amt','Churn_risk']][(df.Total_score > 5)]
-X = X.loc[X['Age'] > np.percentile(X['Age'], 0.05)]
+#X = X.loc[X['Age'] > np.percentile(X['Age'], 0.05)]
 X['Age2'] = np.log10(df['Age'])
 X['PSYTE_Segment2'] = np.log10(df['PSYTE_Segment'])
 X['Trnx_count2'] = np.log10(df['Trnx_count'])
@@ -187,10 +187,9 @@ with open('metrics.csv', 'a') as f:
 X = df[['Age','Tenure','PSYTE_Segment','Total_score',\
     'Trnx_count','num_products','mean_trnx_amt','Churn_risk']][(df.Total_score < 20) | (df.Total_score > 25)]
 
-X = X.loc[X['Age'] > np.percentile(X['Age'], 0.05)]
-X['Age2'] = np.log10(df['Age'])
-X['PSYTE_Segment2'] = np.log10(df['PSYTE_Segment'])
-X['Trnx_count2'] = np.log10(df['Trnx_count'])
+X['Age'] = np.log10(df['Age'])
+X['PSYTE_Segment'] = np.log10(df['PSYTE_Segment'])
+X['Trnx_count'] = np.log10(df['Trnx_count'])
 ordered_satisfaction = ['Low', 'Medium', 'High']
 X['Churn_risk'] = X.Churn_risk.astype("category").cat.codes
 y = np.ravel(X[['Churn_risk']])
@@ -213,68 +212,26 @@ with open('metrics.csv', 'a') as f:
 
 
 
+for nshard in [5, 15,20,25,30]:
+    sM = sModel(df, nshard)
+    metrics = sM.train_model()
+    with open('metrics.csv', 'a') as f:
+        #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+        #f.write('\n')
+        f.write(metrics)
+        f.write('\n')
 
-sM = sModel(df, 15)
-metrics = sM.train_model()
-with open('metrics.csv', 'a') as f:
-    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
-    #f.write('\n')
-    f.write(metrics)
-    f.write('\n')
+    metrics = sM.get_aggregatedmodel()
+    with open('metrics.csv', 'a') as f:
+        #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+        #f.write('\n')
+        f.write(metrics)
+        f.write('\n')
 
-metrics = sM.get_aggregatedmodel()
-with open('metrics.csv', 'a') as f:
-    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
-    #f.write('\n')
-    f.write(metrics)
-    f.write('\n')
-
-
-sM = sModel(df, 20)
-metrics = sM.train_model()
-with open('metrics.csv', 'a') as f:
-    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
-    #f.write('\n')
-    f.write(metrics)
-    f.write('\n')
-
-metrics = sM.get_aggregatedmodel()
-with open('metrics.csv', 'a') as f:
-    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
-    #f.write('\n')
-    f.write(metrics)
-    f.write('\n')
-
-sM = sModel(df, 25)
-metrics = sM.train_model()
-with open('metrics.csv', 'a') as f:
-    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
-    #f.write('\n')
-    f.write(metrics)
-    f.write('\n')
-
-metrics = sM.get_aggregatedmodel()
-with open('metrics.csv', 'a') as f:
-    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
-    #f.write('\n')
-    f.write(metrics)
-    f.write('\n')
-
-
-sM = sModel(df, 30)
-metrics = sM.train_model()
-with open('metrics.csv', 'a') as f:
-    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
-    #f.write('\n')
-    f.write(metrics)
-    f.write('\n')
-
-metrics = sM.get_aggregatedmodel()
-with open('metrics.csv', 'a') as f:
-    #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
-    #f.write('\n')
-    f.write(metrics)
-    f.write('\n')
-
-
+    metrics = sM.get_averagedmodel()
+    with open('metrics.csv', 'a') as f:
+        #f.write('Model, training_time, testing_time, train_size, test_size, accuracy, precison, f1, recall')
+        #f.write('\n')
+        f.write(metrics)
+        f.write('\n')
 

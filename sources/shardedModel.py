@@ -207,7 +207,7 @@ class sModel():
     def get_aggregatedmodel(self):
         # define the base models
         models = list()
-        for iter in range(5):
+        for iter in range(self.nshard):
             filename = 'shard_model_'+str(iter)+'.sav'
             models.append(('RF_shard'+str(iter), pickle.load(open('../models/'+filename, 'rb'))))
         self.ensemble = VotingClassifier(estimators=models, voting='soft')
@@ -252,7 +252,7 @@ class sModel():
         # load the model from disk
         #loaded_model = pickle.load(open('../models/'+filename, 'rb'))
         #result = loaded_model.score(X_test, y_test)
-        _metrics = str('aggregated_model_B4_'+str(self.nshard)+'s, '+str(format(training_time, ".3f")) + ',' +
+        _metrics = str('model_B4_'+str(self.nshard)+'_shards, '+str(format(training_time, ".3f")) + ',' +
             str(format(testing_time, ".3f")) + ',' +
             str(format(self._y_train.shape[0], ".0f")) +  ',' +
             str(format(self._y_test.shape[0], ".0f")) + ',' +
@@ -262,4 +262,64 @@ class sModel():
             str(format(recall, ".3f")))+'\n'
         print(_metrics)
         return _metrics
+
+
+    def get_averagedmodel(self):
+        # define the base models
+        models = list()
+        shard = self.shards[0]
+        y = np.ravel(shard[['Churn_risk']])
+        X = shard.drop(columns=['Churn_risk'])
+        self._X_train, self._X_test, self._y_train, self._y_test = train_test_split(X, y, test_size=0.3)
+
+        training_time_l = []
+        accuracy_l = []    
+        for iter in range(self.nshard):
+            filename = 'shard_model_'+str(iter)+'.sav'
+            model = pickle.load(open('../models/'+filename, 'rb'))
+            
+            starttime = timeit.default_timer()
+            #Train the model using the training sets y_pred=clf.predict(X_test)
+            model.fit(self._X_train,self._y_train)
+            model_params = model.get_params() 
+            print(model_params)
+
+            training_time = timeit.default_timer() - starttime
+            print("The training time is :", training_time)
+            starttime = timeit.default_timer()
+            self._y_pred=model.predict(self._X_test)
+            precison = metrics.precision_score(self._y_test, self._y_pred, average='weighted')
+            print('Precison: ', precison)
+            recall = metrics.recall_score(self._y_test, self._y_pred, average='weighted')
+            print('Recall: ', recall)
+            f1 = metrics.f1_score(self._y_test, self._y_pred, average='weighted')
+            print('F1: ', f1)
+            accuracy = metrics.accuracy_score(self._y_test, self._y_pred)
+            print('Accuracy: ', accuracy)
+            testing_time = timeit.default_timer() - starttime
+            print("The testing time is :", testing_time)
+            training_time_l.append(training_time)
+            accuracy_l.append(accuracy)   
+
+            # save the model to disk
+            #filename = 'averaged_model.sav'
+            #pickle.dump(self.ensemble, open('../models/'+filename, 'wb'))
+            
+            # load the model from disk
+            #loaded_model = pickle.load(open('../models/'+filename, 'rb'))
+            #result = loaded_model.score(X_test, y_test)
+            _metrics = str('averaged_model_B4_'+str(self.nshard)+'_shards, '+str(format(training_time, ".3f")) + ',' +
+                str(format(testing_time, ".3f")) + ',' +
+                str(format(self._y_train.shape[0], ".0f")) +  ',' +
+                str(format(self._y_test.shape[0], ".0f")) + ',' +
+                str(format(accuracy, ".3f")) +  ',' +
+                str(format(precison, ".3f")) + ',' +
+                str(format(f1, ".3f"))+ ',' +
+                str(format(recall, ".3f")))+'\n'
+            print(_metrics)
+        print(np.mean(training_time_l))
+        print(np.mean(accuracy_l))
+        
+        return _metrics
+
 
