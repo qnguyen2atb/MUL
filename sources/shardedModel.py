@@ -14,9 +14,10 @@ from sklearn.pipeline import Pipeline
 
 class sModel():
     
-    def __init__(self, df, nshard):
+    def __init__(self, model_name, df, nshard):
         feature_names = ['Age','Tenure','PSYTE_Segment','Total_score','Trnx_count','num_products','mean_trnx_amt']
-        df = df.loc[df['Age'] > np.percentile(df['Age'], 0.05)]
+        #df = df.loc[df['Age'] > np.percentile(df['Age'], 0.05)]
+        self.model_name = model_name
         self.nshard = nshard
         '''
         # Transform some features
@@ -56,7 +57,7 @@ class sModel():
         param_max_nodes = [None, 2,3,4]
         param_range_fl = [1.0, 0.1]
         
-        #test set
+        #test parameters to run faster
         param_estimators = [100]
         param_range = [10,15,20]
         param_min_leaf = [0.1]
@@ -101,8 +102,6 @@ class sModel():
         
         
         clf=RandomForestClassifier(RF.best_params_) #100
-        clf.fit(self.X_train,self.y_train)
-        
         
         '''    
         self.y_pred=clf.predict(self.X_test)
@@ -116,8 +115,7 @@ class sModel():
         print('Accuracy: ', accuracy)
         
         '''
-        #plot feature important
-        #Check important feature
+        # plot feature important
         # check Important features
         feature_importances_df = pd.DataFrame(
             {"feature": list(self.X_train.columns), "importance": clf.feature_importances_}
@@ -143,27 +141,33 @@ class sModel():
         
         
         # save the model to disk
-        filename = 'original_model.sav'
+        filename = 'shard_shape_model.sav'
         pickle.dump(clf, open('../models/'+filename, 'wb'))
         
         # load the model from disk
         loaded_model = pickle.load(open('../models/'+filename, 'rb'))
         #result = loaded_model.score(X_test, y_test)
+        return RF.best_params_, loaded_model
     
     
     
     
-    def train_model(self):
-    
+    def train_model(self, model_shape_file=None):
+        
+        if model_shape_file:
+            model_params = pickle.load(open('../models/'+model_shape_file, 'rb'))     
+        else:
+            model_params = {'bootstrap': True, 'ccp_alpha': 0.0, 'class_weight': None, 'criterion': 'gini', 'max_depth': None, 'max_features': 'auto', 'max_leaf_nodes': None, 'max_samples': None, 'min_impurity_decrease': 0.0, 'min_impurity_split': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 'n_estimators': 100, 'n_jobs': -1, 'oob_score': False, 'random_state': None, 'verbose': 0, 'warm_start': False}
+
+
         _metrics = ''
         for iter, shard in enumerate(self.shards):
             y = np.ravel(shard[['Churn_risk']])
             X = shard.drop(columns=['Churn_risk'])
             self._X_train, self._X_test, self._y_train, self._y_test = train_test_split(X, y, test_size=0.3) 
             
-            original_params = {'bootstrap': True, 'ccp_alpha': 0.0, 'class_weight': None, 'criterion': 'gini', 'max_depth': None, 'max_features': 'auto', 'max_leaf_nodes': None, 'max_samples': None, 'min_impurity_decrease': 0.0, 'min_impurity_split': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 'n_estimators': 100, 'n_jobs': -1, 'oob_score': False, 'random_state': None, 'verbose': 0, 'warm_start': False}
 
-            clf=RandomForestClassifier(**original_params) #100
+            clf=RandomForestClassifier(**model_params) #100
             
             starttime = timeit.default_timer()
             #Train the model using the training sets y_pred=clf.predict(X_test)
@@ -193,7 +197,7 @@ class sModel():
             # load the model from disk
             loaded_model = pickle.load(open('../models/'+filename, 'rb'))
             #result = loaded_model.score(X_test, y_test)
-            _metrics += str('shard_'+str(iter)+'_model_B4_'+str(self.nshard)+'s, '+str(format(training_time, ".3f")) + ',' +
+            _metrics += str(self.model_name)+'_'+str(iter)+str('_shard_'+str(self.nshard)+'s, '+str(format(training_time, ".3f")) + ',' +
                 str(format(testing_time, ".3f")) + ',' +
                 str(format(self._y_train.shape[0], ".0f")) +  ',' +
                 str(format(self._y_test.shape[0], ".0f")) + ',' +
@@ -222,8 +226,6 @@ class sModel():
         X = shard.drop(columns=['Churn_risk'])
         self._X_train, self._X_test, self._y_train, self._y_test = train_test_split(X, y, test_size=0.3)
         
-
-
         starttime = timeit.default_timer()
         #Train the model using the training sets y_pred=clf.predict(X_test)
         self.ensemble.fit(self._X_train,self._y_train)
@@ -252,14 +254,14 @@ class sModel():
         # load the model from disk
         #loaded_model = pickle.load(open('../models/'+filename, 'rb'))
         #result = loaded_model.score(X_test, y_test)
-        _metrics = str('model_B4_'+str(self.nshard)+'_shards, '+str(format(training_time, ".3f")) + ',' +
-            str(format(testing_time, ".3f")) + ',' +
-            str(format(self._y_train.shape[0], ".0f")) +  ',' +
-            str(format(self._y_test.shape[0], ".0f")) + ',' +
-            str(format(accuracy, ".3f")) +  ',' +
-            str(format(precison, ".3f")) + ',' +
-            str(format(f1, ".3f"))+ ',' +
-            str(format(recall, ".3f")))+'\n'
+        _metrics = str(self.model_name)+str(self.nshard)+'_shards, '+str(format(training_time, ".3f")) + ',' + \
+            str(format(testing_time, ".3f")) + ',' + \
+            str(format(self._y_train.shape[0], ".0f")) +  ',' + \
+            str(format(self._y_test.shape[0], ".0f")) + ',' + \
+            str(format(accuracy, ".3f")) +  ',' + \
+            str(format(precison, ".3f")) + ',' + \
+            str(format(f1, ".3f"))+ ',' + \
+            str(format(recall, ".3f"))+'\n'
         print(_metrics)
         return _metrics
 
@@ -308,14 +310,14 @@ class sModel():
             # load the model from disk
             #loaded_model = pickle.load(open('../models/'+filename, 'rb'))
             #result = loaded_model.score(X_test, y_test)
-            _metrics = str('averaged_model_B4_'+str(self.nshard)+'_shards, '+str(format(training_time, ".3f")) + ',' +
-                str(format(testing_time, ".3f")) + ',' +
-                str(format(self._y_train.shape[0], ".0f")) +  ',' +
-                str(format(self._y_test.shape[0], ".0f")) + ',' +
-                str(format(accuracy, ".3f")) +  ',' +
-                str(format(precison, ".3f")) + ',' +
-                str(format(f1, ".3f"))+ ',' +
-                str(format(recall, ".3f")))+'\n'
+            _metrics = str(self.model_name)+str(self.nshard)+'_shards, '+str(format(training_time, ".3f")) + ',' + \
+                str(format(testing_time, ".3f")) + ',' + \
+                str(format(self._y_train.shape[0], ".0f")) +  ',' + \
+                str(format(self._y_test.shape[0], ".0f")) + ',' + \
+                str(format(accuracy, ".3f")) +  ',' + \
+                str(format(precison, ".3f")) + ',' + \
+                str(format(f1, ".3f"))+ ',' + \
+                str(format(recall, ".3f"))+'\n'
             print(_metrics)
         print(np.mean(training_time_l))
         print(np.mean(accuracy_l))
